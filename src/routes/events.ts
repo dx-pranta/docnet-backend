@@ -2,17 +2,27 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { Event, User, EventAttendee } from '../models';
 import { protect } from '../middleware/auth';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 
 router.get('/', async (req: any, res: any) => {
   try {
-    const { type, isPaid, city, status = 'published', page = 1, limit = 10 } = req.query;
+    const { type, isPaid, city, search, status, page = 1, limit = 10 } = req.query;
 
-    const where: any = { status };
+    const where: any = {};
+    if (status) where.status = status;
     if (type) where.eventType = type;
-    if (isPaid !== undefined) where.isPaid = isPaid === 'true';
+    if (isPaid === 'true' || isPaid === 'false') {
+      where.isPaid = isPaid === 'true';
+    }
     if (city) where.city = city;
+    if (search) {
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
 
     const events = await Event.findAndCountAll({
       where,
