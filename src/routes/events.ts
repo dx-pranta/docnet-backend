@@ -8,10 +8,9 @@ const router = express.Router();
 
 router.get('/', async (req: any, res: any) => {
   try {
-    const { type, isPaid, city, search, status, page = 1, limit = 10 } = req.query;
+    const { type, isPaid, city, search, page = 1, limit = 10 } = req.query;
 
     const where: any = {};
-    if (status) where.status = status;
     if (type) where.eventType = type;
     if (isPaid === 'true' || isPaid === 'false') {
       where.isPaid = isPaid === 'true';
