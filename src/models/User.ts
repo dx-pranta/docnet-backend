@@ -14,6 +14,9 @@ interface UserAttributes {
   hospital?: string;
   bio?: string;
   avatar?: string;
+  coverPhoto?: string;
+  ahpraId?: string;
+  yearsExperience?: number;
   city?: string;
   country?: string;
   website?: string;
@@ -39,6 +42,9 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public hospital?: string;
   public bio?: string;
   public avatar?: string;
+  public coverPhoto?: string;
+  public ahpraId?: string;
+  public yearsExperience?: number;
   public city?: string;
   public country?: string;
   public website?: string;
@@ -122,6 +128,18 @@ User.init(
     },
     twitter: {
       type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    coverPhoto: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    ahpraId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    yearsExperience: {
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     isVerified: {

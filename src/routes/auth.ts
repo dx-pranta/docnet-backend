@@ -59,6 +59,13 @@ router.post(
           title: user.title,
           specialty: user.specialty,
           role: user.role,
+          avatar: user.avatar,
+          hospital: user.hospital,
+          bio: user.bio,
+          qualifications: user.qualifications,
+          coverPhoto: user.coverPhoto,
+          ahpraId: user.ahpraId,
+          yearsExperience: user.yearsExperience,
         },
       });
     } catch (error) {
@@ -106,6 +113,12 @@ router.post(
           specialty: user.specialty,
           role: user.role,
           avatar: user.avatar,
+          hospital: user.hospital,
+          bio: user.bio,
+          qualifications: user.qualifications,
+          coverPhoto: user.coverPhoto,
+          ahpraId: user.ahpraId,
+          yearsExperience: user.yearsExperience,
         },
       });
     } catch (error) {
