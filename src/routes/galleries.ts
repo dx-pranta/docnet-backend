@@ -7,25 +7,40 @@ const router = express.Router();
 
 router.get('/', async (req: any, res: any) => {
   try {
-    const { isPublic = true, page = 1, limit = 10 } = req.query;
+    const { isPublic = 'true', page = 1, limit = 10 } = req.query;
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
-    const galleries = await Gallery.findAndCountAll({
-      where: { isPublic: isPublic === 'true' },
-      include: [
-        { model: User, as: 'owner', attributes: ['id', 'firstName', 'lastName', 'avatar'] },
-        { model: Photo, as: 'photos', limit: 4 },
-      ],
-      limit: Number(limit),
-      offset: (Number(page) - 1) * Number(limit),
+    const isPublicFilter = String(isPublic) === 'true';
+    const where = { isPublic: isPublicFilter };
+
+    const total = await Gallery.count({ where });
+
+    const galleries = await Gallery.findAll({
+      where,
+      limit: limitNumber,
+      offset: (pageNumber - 1) * limitNumber,
       order: [['createdAt', 'DESC']],
     });
 
+    const galleryIds = galleries.map((gallery) => gallery.id);
+    const galleriesWithRelations = galleryIds.length
+      ? await Gallery.findAll({
+          where: { id: galleryIds },
+          include: [
+            { model: User, as: 'owner', attributes: ['id', 'firstName', 'lastName', 'avatar'] },
+            { model: Photo, as: 'photos' },
+          ],
+          order: [['createdAt', 'DESC']],
+        })
+      : [];
+
     res.json({
       success: true,
-      data: galleries.rows,
-      total: galleries.count,
-      page: Number(page),
-      totalPages: Math.ceil(galleries.count / Number(limit)),
+      data: galleriesWithRelations,
+      total,
+      page: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
@@ -40,7 +55,10 @@ router.get('/:id', async (req: any, res: any) => {
         {
           model: Photo,
           as: 'photos',
-          include: [{ model: User, as: 'uploader', attributes: ['id', 'firstName', 'lastName', 'avatar'] }],
+          include: [
+            { model: User, as: 'uploader', attributes: ['id', 'firstName', 'lastName', 'avatar'] },
+            { model: User, as: 'likedBy', attributes: ['id'], through: { attributes: [] } },
+          ],
         },
       ],
     });
@@ -49,7 +67,13 @@ router.get('/:id', async (req: any, res: any) => {
       return res.status(404).json({ message: 'Gallery not found' });
     }
 
-    res.json({ success: true, data: gallery });
+    const galleryJson: any = gallery.toJSON();
+    galleryJson.photos = (galleryJson.photos || []).map((photo: any) => ({
+      ...photo,
+      likes: (photo.likedBy || []).map((likedUser: any) => likedUser.id),
+    }));
+
+    res.json({ success: true, data: galleryJson });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }

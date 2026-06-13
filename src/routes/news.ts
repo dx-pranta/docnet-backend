@@ -15,15 +15,28 @@ router.get('/', async (req: any, res: any) => {
 
     const news = await News.findAndCountAll({
       where,
-      include: [{ model: User, as: 'author', attributes: ['id', 'firstName', 'lastName', 'title', 'avatar'] }],
+      include: [
+        { model: User, as: 'author', attributes: ['id', 'firstName', 'lastName', 'title', 'avatar'] },
+        { model: User, as: 'likedBy', attributes: ['id'], through: { attributes: [] } },
+      ],
       limit: Number(limit),
       offset: (Number(page) - 1) * Number(limit),
       order: [['createdAt', 'DESC']],
     });
 
+    const newsWithCounts = news.rows.map((article: any) => {
+      const json = article.toJSON();
+      const likedBy = json.likedBy || [];
+      return {
+        ...json,
+        likes: likedBy,
+        likesCount: likedBy.length,
+      };
+    });
+
     res.json({
       success: true,
-      data: news.rows,
+      data: newsWithCounts,
       total: news.count,
       page: Number(page),
       totalPages: Math.ceil(news.count / Number(limit)),
@@ -203,6 +216,26 @@ router.post('/:id/comments', protect, async (req: any, res) => {
     });
 
     res.status(201).json({ success: true, data: fullComment });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+});
+
+router.delete('/comments/:commentId', protect, async (req: any, res) => {
+  try {
+    const comment = await Comment.findByPk(req.params.commentId);
+
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    if (comment.authorId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to delete this comment' });
+    }
+
+    await comment.destroy();
+
+    res.json({ success: true, message: 'Comment deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }

@@ -50,6 +50,7 @@ docnet-frontend/          # React + Vite SPA
 - Node.js (v20+)
 - PostgreSQL
 - npm or yarn
+- Stripe CLI (for webhook testing): `brew install stripe/stripe-cli/stripe`
 
 ### Database Setup
 
@@ -74,6 +75,18 @@ npm run dev
 
 Backend runs on: http://localhost:5001
 
+### Stripe Webhook (for local payment testing)
+
+```bash
+# Login to Stripe CLI (opens browser)
+stripe login
+
+# Forward webhook events to backend
+stripe listen --forward-to localhost:5001/api/payments/stripe/webhook
+```
+
+Copy the `whsec_...` secret from the CLI output into `STRIPE_WEBHOOK_SECRET` in `.env`.
+
 ### Frontend Setup
 
 ```bash
@@ -96,15 +109,18 @@ JWT_SECRET=your-secret-key
 JWT_EXPIRE=7d
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 FRONTEND_URL=http://localhost:5173
 ```
 
 ### Frontend (.env)
 
 ```env
-VITE_API_URL=/api
-VITE_STRIPE_PUBLIC_KEY=pk_test_...
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+VITE_API_URL=http://localhost:5001/api
 ```
+
+> Note: `VITE_API_URL` is reserved for production builds. In development, the Vite proxy forwards `/api` to `localhost:5001`.
 
 ## API Endpoints
 
@@ -171,8 +187,9 @@ VITE_STRIPE_PUBLIC_KEY=pk_test_...
 ## Test Data
 
 - **Events:**
-  1. Annual Cardiology Conference 2026 (Paid - $150)
-  2. Free Medical Workshop: Basic Life Support (Free)
+  1. Cardio Innovation Summit 2026 (Paid - $120 AUD)
+  2. ED Trauma Workflow Workshop (Free)
+  3. Neurology Grand Rounds Meetup (Free)
 
 - **News:**
   1. "Breakthrough in AI-Powered Medical Diagnostics"
@@ -185,15 +202,53 @@ VITE_STRIPE_PUBLIC_KEY=pk_test_...
 
 ## Stripe Integration
 
-To test payments:
+### Keys needed
 
-1. Get Stripe test keys from https://dashboard.stripe.com/test/apikeys
-2. Add to `.env`:
-   ```
-   STRIPE_SECRET_KEY=sk_test_...
-   STRIPE_PUBLISHABLE_KEY=pk_test_...
-   ```
-3. Use Stripe test cards: https://stripe.com/docs/testing
+| Variable | Where to get |
+|---|---|
+| `STRIPE_SECRET_KEY` (starts `sk_test_`) | https://dashboard.stripe.com/test/apikeys |
+| `STRIPE_PUBLISHABLE_KEY` (starts `pk_test_`) | https://dashboard.stripe.com/test/apikeys |
+| `STRIPE_WEBHOOK_SECRET` (starts `whsec_`) | Run `stripe listen --forward-to localhost:5001/api/payments/stripe/webhook` |
+
+### Backend `.env`
+```
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+### Frontend `.env`
+```
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+### Payment flow (paid events)
+
+1. User clicks **Register & Pay** → `POST /api/payments/stripe/create-intent`
+2. Backend creates Stripe `PaymentIntent` + local `Payment` record (status `pending`)
+3. Frontend confirms card via Stripe.js (`stripe.confirmCardPayment`)
+4. On success, frontend calls `POST /api/payments/stripe/confirm`
+5. Backend marks payment `completed` and creates `EventAttendee` record
+6. Optional: Stripe webhook (`payment_intent.succeeded`) reconciles if confirm step fails
+
+### Test cards
+
+| Card | Result |
+|---|---|
+| `4242 4242 4242 4242` | Success |
+| `4000 0000 0000 0002` | Decline |
+| `4000 0025 0000 3155` | Requires 3D Secure |
+
+Full list: https://stripe.com/docs/testing
+
+### Local webhook testing
+
+```bash
+stripe login
+stripe listen --forward-to localhost:5001/api/payments/stripe/webhook
+```
+
+Keep the terminal open — it auto-forwards events and prints the signing secret on startup.
 
 ## Running in Production
 

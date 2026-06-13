@@ -433,5 +433,36 @@ console.error('Database error:', error);
 - Never commit sensitive data (.env files)
 - Use .gitignore for build artifacts and dependencies
 
+## Stripe Payments
+
+### Route files
+- `src/routes/payments.ts` — all Stripe routes
+
+### Endpoints
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/payments/stripe/create-intent` | protect | Create PaymentIntent + local Payment record |
+| POST | `/api/payments/stripe/confirm` | protect | Confirm payment succeeded, create EventAttendee |
+| POST | `/api/payments/stripe/webhook` | none | Stripe webhook (signature-verified) |
+| GET | `/api/payments/history` | protect | List user's payments |
+| POST | `/api/payments/refund` | protect | Refund + unregister attendee |
+
+### Flow for paid events
+1. `create-intent` → creates Stripe PaymentIntent, saves local Payment (status: `pending`)
+2. Frontend confirms card via Stripe.js
+3. Frontend calls `confirm` → checks PaymentIntent status, marks `completed`, creates EventAttendee
+4. Webhook (`payment_intent.succeeded`) acts as fallback if confirm step is missed
+
+### Required env vars
+```
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+### Testing
+- Stripe CLI: `stripe listen --forward-to localhost:5001/api/payments/stripe/webhook`
+- Test card `4242 4242 4242 4242` for successful payment
+
 This guide should be updated as the project evolves and new tools/patterns are adopted.</content>
 <parameter name="filePath">/Users/debasish/docnet-backend/AGENTS.md

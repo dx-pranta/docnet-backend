@@ -13,6 +13,7 @@ import galleryRoutes from './routes/galleries';
 import connectionRoutes from './routes/connections';
 import messageRoutes from './routes/messages';
 import paymentRoutes from './routes/payments';
+import uploadRoutes from './routes/uploads';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/galleries', galleryRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
