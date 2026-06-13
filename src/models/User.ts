@@ -23,6 +23,8 @@ interface UserAttributes {
   linkedin?: string;
   twitter?: string;
   isVerified: boolean;
+  verificationCode?: string;
+  verificationCodeExpires?: Date;
   role: 'user' | 'organizer' | 'admin';
   createdAt?: Date;
   updatedAt?: Date;
@@ -51,6 +53,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public linkedin?: string;
   public twitter?: string;
   public isVerified!: boolean;
+  public verificationCode?: string;
+  public verificationCodeExpires?: Date;
   public role!: 'user' | 'organizer' | 'admin';
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -145,6 +149,14 @@ User.init(
     isVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
+    },
+    verificationCode: {
+      type: DataTypes.STRING(6),
+      allowNull: true,
+    },
+    verificationCodeExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     role: {
       type: DataTypes.ENUM('user', 'organizer', 'admin'),
