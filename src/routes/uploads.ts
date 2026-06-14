@@ -18,7 +18,7 @@ const uploadToCloudinary = (buffer: Buffer, folder: string, blurSensitiveData: b
     };
 
     if (blurSensitiveData) {
-      options.transformation = [{ effect: 'blur_faces:1500' }];
+      options.transformation = [{ effect: 'blur_faces:2000' }];
     }
 
     const stream = cloudinary.uploader.upload_stream(

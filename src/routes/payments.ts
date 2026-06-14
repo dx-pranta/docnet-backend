@@ -97,9 +97,11 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
       { where: { paymentId: paymentIntent.id } }
     );
 
-    await EventAttendee.create({
-      eventId: Number(eventId),
-      userId: Number(userId),
+    await EventAttendee.findOrCreate({
+      where: {
+        eventId: Number(eventId),
+        userId: Number(userId),
+      },
     });
   }
 
@@ -122,13 +124,15 @@ router.post('/stripe/confirm', protect, async (req: any, res) => {
 
     const paymentIntent = await stripe.paymentIntents.retrieve(payment.paymentId);
 
-    if (paymentIntent.status === 'succeeded') {
-      await payment.update({ status: 'completed' });
+      if (paymentIntent.status === 'succeeded') {
+        await payment.update({ status: 'completed' });
 
-      await EventAttendee.create({
-        eventId: payment.eventId,
-        userId: req.user.id,
-      });
+        await EventAttendee.findOrCreate({
+          where: {
+            eventId: payment.eventId,
+            userId: req.user.id,
+          },
+        });
 
       res.json({ success: true, message: 'Payment confirmed' });
     } else {
